@@ -24,7 +24,7 @@ type TwitterProfile = {
 
 @Injectable()
 export class TwitterClientBase {
-  private readonly logger = new Logger(TwitterClientBase.name);
+  readonly logger = new Logger(TwitterClientBase.name);
   readonly twitterClient: Scraper;
   readonly requestQueue: RequestQueue;
   profile: TwitterProfile;
@@ -32,7 +32,7 @@ export class TwitterClientBase {
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    @InjectModel(Memory.name) private readonly memoryModel: Model<Memory>,
+    @InjectModel(Memory.name) readonly memoryModel: Model<Memory>,
   ) {
     this.twitterClient = new Scraper();
     this.requestQueue = new RequestQueue();
@@ -122,7 +122,7 @@ export class TwitterClientBase {
         } satisfies TwitterProfile;
       });
 
-      //   this.cacheProfile(profile);
+      this.cacheProfile(profile);
 
       return profile;
     } catch (error) {
@@ -134,7 +134,7 @@ export class TwitterClientBase {
 
   async cacheTweet(tweet: Tweet): Promise<void> {
     if (!tweet) {
-      console.warn('Tweet is undefined, skipping cache');
+      this.logger.log('Tweet is undefined, skipping cache');
       return;
     }
 
@@ -317,6 +317,7 @@ export class TwitterClientBase {
     this.logger.debug('Populating timeline...');
 
     const cachedTweets = await this.getCachedTimeline();
+    console.log('cachedTweets', cachedTweets);
 
     let tweetsToProcess: Tweet[] = [];
 
@@ -398,15 +399,15 @@ export class TwitterClientBase {
     this.logger.log(`Finished saving ${tweetsToProcess.length} tweets.`);
   }
 
-  private getTweetId(tweetId: string): string {
+  getTweetId(tweetId: string): string {
     return `${tweetId}`;
   }
 
-  private getRoomId(conversationId: string): string {
+  getRoomId(conversationId: string): string {
     return `${conversationId}`;
   }
 
-  private getZeroEmbedding(): number[] {
+  getZeroEmbedding(): number[] {
     return new Array(1536).fill(0); // or whatever your embedding size is
   }
 

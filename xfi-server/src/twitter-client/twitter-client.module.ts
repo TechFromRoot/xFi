@@ -5,10 +5,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Memory, MemorySchema } from 'src/database/schemas/memory.schema';
 import { TwitterClientBase } from './base.provider';
 import { TwitterClientInteractions } from './interactions.provider';
+import { WalletModule } from 'src/wallet/wallet.module';
+import { User, UserSchema } from 'src/database/schemas/user.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Memory.name, schema: MemorySchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    WalletModule,
   ],
   providers: [
     TwitterClientService,

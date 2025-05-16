@@ -86,24 +86,47 @@ export class TwitterClientInteractions {
   async handleTwitterInteractions() {
     this.logger.log('Checking Twitter interactions');
 
-    const twitterUsername = this.twitterClientBase.profile.username;
+    const twitterUsername = twitterConfig.TWITTER_USERNAME;
     try {
+      // check direct dm
+      // const dm =
+      //   await this.twitterClientBase.twitterClient.getDirectMessageConversations(
+      //     this.twitterClientBase.profile.id,
+      //   );
+
+      // console.log('dm   :', dm.conversations);
+      // await this.twitterClientBase.twitterClient.sendDirectMessage(
+      //   dm.conversations[0].conversationId,
+      //   'Yo man',
+      // );
+
+      // {
+      //   id: '1922802382683168780',
+      //   text: 'Yello',
+      //   senderId: '1871417351066816512',
+      //   recipientId: '1863906534863880192',
+      //   createdAt: '1747266786000',
+      //   mediaUrls: undefined,
+      //   senderScreenName: 'solMIND_ai',
+      //   recipientScreenName: 'TestBots28'
+      // }
       // Check for mentions
       const tweetCandidates = (
         await this.twitterClientBase.fetchSearchTweets(
           `@${twitterUsername}`,
-          20,
+          3,
           SearchMode.Latest,
         )
       ).tweets;
 
       // de-duplicate tweetCandidates with a set
       const uniqueTweetCandidates = [...new Set(tweetCandidates)];
+
       // Sort tweet candidates by ID in ascending order
       uniqueTweetCandidates
         .sort((a, b) => a.id.localeCompare(b.id))
-        .filter((tweet) => tweet.userId !== this.twitterClientBase.profile.id);
-
+        .filter((tweet) => tweet.userId !== twitterConfig.TWITTER_USERNAME);
+      console.log('tweets \n :', uniqueTweetCandidates);
       // for each tweet candidate, handle the tweet
       for (const tweet of uniqueTweetCandidates) {
         if (
@@ -114,7 +137,7 @@ export class TwitterClientInteractions {
           const tweetId = this.getTweetId(tweet.id);
           // Check if we've already processed this tweet
           const existingResponse = await this.memoryModel
-            .find({
+            .findOne({
               id: tweetId,
             })
             .exec();
@@ -131,8 +154,8 @@ export class TwitterClientInteractions {
             tweet,
             this.twitterClientBase,
           );
-
-          // console.log("this is the user tweet  :", tweet.text);
+          // this.logger.log(tweet);
+          this.logger.log(`this is the user tweet  :, ${tweet.text}`);
 
           const message = {
             content: { text: tweet.text },
@@ -168,18 +191,18 @@ export class TwitterClientInteractions {
     message: IMemory;
     thread: Tweet[];
   }) {
-    if (tweet.userId === this.twitterClientBase.profile.id) {
+    if (tweet.userId === twitterConfig.TWITTER_USERNAME) {
       // console.log("skipping tweet from bot itself", tweet.id);
       // Skip processing if the tweet is from the bot itself
       return;
     }
 
     if (!message.content.text) {
-      this.logger.log('Skipping Tweet with no text', tweet.id);
+      this.logger.log(`Skipping Tweet with no text, ${tweet.id}`);
       return { text: '', action: 'IGNORE' };
     }
 
-    this.logger.log('Processing Tweet: ', tweet.id);
+    this.logger.log(`Processing Tweet: , ${tweet.id}`);
     //   const formatTweet = (tweet: Tweet) => {
     //     return `  ID: ${tweet.id}
     // From: ${tweet.name} (@${tweet.username})
@@ -187,7 +210,7 @@ export class TwitterClientInteractions {
     //   };
     // const currentPost = formatTweet(tweet);
 
-    this.logger.debug('Thread: ', thread);
+    this.logger.debug(`Thread: , ${thread}`);
     const formattedConversation = thread
       .map(
         (tweet) => `@${tweet.username} (${new Date(
@@ -202,7 +225,7 @@ export class TwitterClientInteractions {
       )
       .join('\n\n');
 
-    this.logger.debug('formattedConversation: ', formattedConversation);
+    this.logger.debug(`formattedConversation: , ${formattedConversation}`);
 
     // check if the tweet exists, save if it doesn't
     const tweetId = this.getTweetId(tweet.id);
@@ -269,7 +292,7 @@ export class TwitterClientInteractions {
             this.twitterClientBase,
             response,
             message.roomId,
-            this.twitterClientBase.profile.username,
+            twitterConfig.TWITTER_USERNAME,
             tweet.id,
           );
           return memories;
@@ -299,20 +322,21 @@ export class TwitterClientInteractions {
         );
         await this.wait();
       } catch (error) {
+        console.log(error);
         this.logger.error(`Error sending response tweet: ${error}`);
       }
     }
   }
 
-  async buildConversationThread(
+  buildConversationThread = async (
     tweet: Tweet,
     client: TwitterClientBase,
     maxReplies: number = 10,
-  ): Promise<Tweet[]> {
+  ): Promise<Tweet[]> => {
     const thread: Tweet[] = [];
     const visited: Set<string> = new Set();
 
-    async function processThread(currentTweet: Tweet, depth: number = 0) {
+    const processThread = async (currentTweet: Tweet, depth: number = 0) => {
       this.logger.debug('Processing tweet:', {
         id: currentTweet.id,
         inReplyToStatusId: currentTweet.inReplyToStatusId,
@@ -333,23 +357,16 @@ export class TwitterClientInteractions {
       // Handle memory storage
       const memory = await this.memoryModel
         .find({
-          id: this.getTweetId(currentTweet.id),
+          id: client.getTweetId(currentTweet.id),
         })
         .exec();
 
       if (!memory) {
         const memory = new this.memoryModel({
-          id: this.getTweetId(currentTweet.id),
-          content: {
-            text: currentTweet.text,
-            source: 'twitter',
-            url: currentTweet.permanentUrl,
-            inReplyTo: currentTweet.inReplyToStatusId
-              ? this.getTweetId(currentTweet.inReplyToStatusId)
-              : undefined,
-          },
+          id: client.getTweetId(currentTweet.id),
+          content: currentTweet.text,
           createdAt: currentTweet.timestamp * 1000,
-          roomId: this.getRoomId(currentTweet.conversationId),
+          roomId: client.getRoomId(currentTweet.conversationId),
         });
         await memory.save();
         this.logger.debug('Saved memory for tweet:', currentTweet.id);
@@ -401,7 +418,7 @@ export class TwitterClientInteractions {
       } else {
         this.logger.debug('Reached end of reply chain at:', currentTweet.id);
       }
-    }
+    };
 
     await processThread(tweet, 0);
 
@@ -414,7 +431,7 @@ export class TwitterClientInteractions {
     });
 
     return thread;
-  }
+  };
 
   private getTweetId(tweetId: string): string {
     return `${tweetId}`;
