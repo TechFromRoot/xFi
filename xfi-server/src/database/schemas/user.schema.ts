@@ -23,6 +23,9 @@ export class User {
 
   @Prop()
   svmWalletDetails: string;
+
+  @Prop({ default: false })
+  active: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

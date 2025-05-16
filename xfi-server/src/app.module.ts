@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { TwitterClientModule } from './twitter-client/twitter-client.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { DatabaseModule } from './database/database.module';
-import { XfiAgentModule } from './xfi-agent/xfi-agent.module';
+// import { XfiAgentModule } from './xfi-agent/xfi-agent.module';
 import { WalletModule } from './wallet/wallet.module';
 import { XfiDexModule } from './xfi-dex/xfi-dex.module';
 
@@ -14,7 +14,7 @@ import { XfiDexModule } from './xfi-dex/xfi-dex.module';
     WalletModule,
     DatabaseModule,
     TwitterClientModule,
-    XfiAgentModule,
+    // XfiAgentModule,
     XfiDexModule,
   ],
   controllers: [AppController],
