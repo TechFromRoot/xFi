@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { Transaction } from 'src/database/schemas/transactions.schema';
 import { User } from 'src/database/schemas/user.schema';
 import { WalletService } from 'src/wallet/wallet.service';
 import { XfiDexService } from 'src/xfi-dex/xfi-dex.service';
@@ -16,8 +17,9 @@ interface Token {
 }
 
 interface Receiver {
-  value: string;
+  address: string;
   type: ReceiverType;
+  value?: string;
 }
 interface UserKey {
   evmPK: string;
@@ -101,6 +103,7 @@ export class ParseCommandService {
           type: this.detectTokenType(tokenValue),
         },
         receiver: {
+          address: receiverValue,
           value: receiverValue,
           type: this.detectReceiverType(receiverValue),
         },
@@ -170,10 +173,10 @@ export class ParseCommandService {
 
   // --- Placeholder Action Handlers ---
 
-  async resolveENS(name: string): Promise<string> {
+  async resolveENS(name: string): Promise<Receiver> {
     // TODO: resolve ENS or username to address
     console.log(name);
-    return '0xResolvedAddress';
+    return { address: '0xResolvedAddress', type: 'ens', value: name };
   }
 
   async handleNativeSend(
@@ -181,15 +184,28 @@ export class ParseCommandService {
     to: string,
     amount: string,
     userKey: UserKey,
+    originalCommand: string,
   ) {
     console.log(`Sending ${amount} native on ${chain} to ${to}`);
     try {
       if (chain == 'solana') {
+        const data: Partial<Transaction> = {
+          userId: userKey.userId,
+          transactionType: 'send',
+          chain: 'solana',
+          amount: amount,
+          token: { address: 'solana', tokenType: 'native' },
+          receiver: { value: to, receiverType: 'wallet' },
+          meta: {
+            platform: 'twitter',
+            originalCommand: originalCommand,
+          },
+        };
         const response = await this.dexService.sendSol(
           userKey.svmPK,
           amount,
           to,
-          userKey.userId,
+          data,
         );
         return response;
       }
@@ -204,17 +220,30 @@ export class ParseCommandService {
     to: string,
     amount: string,
     userKey: UserKey,
+    originalCommand: string,
   ) {
     console.log(`Sending ${amount} stable ${token} on ${chain} to ${to}`);
 
     try {
       if (chain == 'solana') {
+        const data: Partial<Transaction> = {
+          userId: userKey.userId,
+          transactionType: 'send',
+          chain: 'solana',
+          amount: amount,
+          token: { address: token, tokenType: 'stable' },
+          receiver: { value: to, receiverType: 'wallet' },
+          meta: {
+            platform: 'twitter',
+            originalCommand: originalCommand,
+          },
+        };
         const response = await this.dexService.sendSplToken(
           userKey.svmPK,
           token,
           amount,
           to,
-          userKey.userId,
+          data,
         );
         return response;
       }
@@ -223,20 +252,22 @@ export class ParseCommandService {
     }
   }
 
-  async handleTokenSend(
-    chain: string,
-    token: string,
-    to: string,
-    amount: string,
-  ) {
-    console.log(`Sending ${amount} of token ${token} on ${chain} to ${to}`);
-  }
+  //   async handleTokenSend(
+  //     chain: string,
+  //     token: string,
+  //     to: string,
+  //     amount: string,
+  //     originalCommand: string,
+  //   ) {
+  //     console.log(`Sending ${amount} of token ${token} on ${chain} to ${to}`);
+  //   }
 
   async handleBuy(
     chain: string,
     token: string,
     nativeAmount: string,
     userPk: UserKey,
+    originalCommand: string,
   ) {
     try {
       if (chain == 'solana') {
@@ -245,6 +276,7 @@ export class ParseCommandService {
           token,
           nativeAmount,
           userPk.userId,
+          originalCommand,
         );
         return response;
       }
@@ -258,6 +290,7 @@ export class ParseCommandService {
     token: string,
     amount: string,
     userPk: UserKey,
+    originalCommand: string,
   ) {
     console.log(`Selling ${amount}% of ${token} on ${chain}`);
     try {
@@ -267,6 +300,7 @@ export class ParseCommandService {
           token,
           amount,
           userPk.userId,
+          originalCommand,
         );
         return response;
       }
@@ -308,14 +342,18 @@ export class ParseCommandService {
       }
 
       const { action, chain, amount, token, receiver } = parsed;
-      let to: string | undefined;
+      let to: Receiver;
 
       if (receiver) {
         if (receiver.type === 'ens' || receiver.type === 'username') {
           //TODO:
           to = await this.resolveENS(receiver.value);
         } else {
-          to = receiver.value;
+          to = {
+            address: receiver.value,
+            type: 'wallet',
+            value: receiver.value,
+          };
         }
       }
 
@@ -324,22 +362,37 @@ export class ParseCommandService {
         case 'tip':
           if (!to) return console.error('Receiver address missing.');
           if (token.type === 'native')
-            return this.handleNativeSend(chain, to, amount, userKeys);
-          if (token.type === 'stable')
+            return this.handleNativeSend(
+              chain,
+              to.address,
+              amount,
+              userKeys,
+              tweet,
+            );
+          if (token.type === 'stable') {
             return this.handleStableSend(
               chain,
               token.value,
-              to,
+              to.address,
               amount,
               userKeys,
+              tweet,
             );
-          return this.handleTokenSend(chain, token.value, to, amount);
+          }
+
+        //   return this.handleTokenSend(
+        //     chain,
+        //     token.value,
+        //     to.address,
+        //     amount,
+        //     tweet,
+        //   );
 
         case 'buy':
-          return this.handleBuy(chain, token.value, amount, userKeys);
+          return this.handleBuy(chain, token.value, amount, userKeys, tweet);
 
         case 'sell':
-          return this.handleSell(chain, token.value, amount, userKeys);
+          return this.handleSell(chain, token.value, amount, userKeys, tweet);
       }
     } catch (error) {
       console.log(error);

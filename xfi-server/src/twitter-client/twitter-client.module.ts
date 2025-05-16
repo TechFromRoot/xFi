@@ -9,11 +9,20 @@ import { WalletModule } from 'src/wallet/wallet.module';
 import { User, UserSchema } from 'src/database/schemas/user.schema';
 import { ParseCommandService } from './parse-command';
 import { XfiDexModule } from 'src/xfi-dex/xfi-dex.module';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
+import {
+  Transaction,
+  TransactionSchema,
+} from 'src/database/schemas/transactions.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Memory.name, schema: MemorySchema }]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: Transaction.name, schema: TransactionSchema },
+    ]),
     WalletModule,
     XfiDexModule,
   ],
@@ -22,7 +31,8 @@ import { XfiDexModule } from 'src/xfi-dex/xfi-dex.module';
     TwitterClientBase,
     TwitterClientInteractions,
     ParseCommandService,
+    UserService,
   ],
-  controllers: [TwitterClientController],
+  controllers: [TwitterClientController, UserController],
 })
 export class TwitterClientModule {}

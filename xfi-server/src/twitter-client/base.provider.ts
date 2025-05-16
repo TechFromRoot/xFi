@@ -230,50 +230,7 @@ export class TwitterClientBase {
       count,
     );
 
-    // console.dir(homeTimeline, { depth: Infinity });
-
     return homeTimeline.tweets;
-    // .filter((t) => t.__typename !== "TweetWithVisibilityResults")
-    // .map((tweet) => {
-    //     // console.log("tweet is", tweet);
-    //     const obj = {
-    //         id: tweet.id,
-    //         name:
-    //             tweet.name ??
-    //             tweet. ?.user_results?.result?.legacy.name,
-    //         username:
-    //             tweet.username ??
-    //             tweet.core?.user_results?.result?.legacy.screen_name,
-    //         text: tweet.text ?? tweet.legacy?.full_text,
-    //         inReplyToStatusId:
-    //             tweet.inReplyToStatusId ??
-    //             tweet.legacy?.in_reply_to_status_id_str,
-    //         createdAt: tweet.createdAt ?? tweet.legacy?.created_at,
-    //         userId: tweet.userId ?? tweet.legacy?.user_id_str,
-    //         conversationId:
-    //             tweet.conversationId ??
-    //             tweet.legacy?.conversation_id_str,
-    //         hashtags: tweet.hashtags ?? tweet.legacy?.entities.hashtags,
-    //         mentions:
-    //             tweet.mentions ?? tweet.legacy?.entities.user_mentions,
-    //         photos:
-    //             tweet.photos ??
-    //             tweet.legacy?.entities.media?.filter(
-    //                 (media) => media.type === "photo"
-    //             ) ??
-    //             [],
-    //         thread: [],
-    //         urls: tweet.urls ?? tweet.legacy?.entities.urls,
-    //         videos:
-    //             tweet.videos ??
-    //             tweet.legacy?.entities.media?.filter(
-    //                 (media) => media.type === "video"
-    //             ) ??
-    //             [],
-    //     };
-    //     // console.log("obj is", obj);
-    //     return obj;
-    // });
   }
 
   async fetchSearchTweets(
@@ -425,10 +382,15 @@ export class TwitterClientBase {
         this.logger.debug('Message already saved', recentMessage[0].id);
       } else {
         await new this.memoryModel({
-          ...message,
+          id: message.id,
+          roomId: message.roomId,
+          content: message.text,
+          createdAt: message.createdAt,
           embedding: this.getZeroEmbedding(),
         }).save();
       }
+      return;
     }
+    return;
   }
 }

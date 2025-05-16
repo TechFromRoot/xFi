@@ -1,4 +1,4 @@
-POST http://localhost:3000/twitter-client
+GET http://localhost:3000/users/1881784875478630400
 Content-Type: application/json
 
 { 

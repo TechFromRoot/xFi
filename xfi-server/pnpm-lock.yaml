@@ -71,9 +71,6 @@ importers:
       multichain-crypto-wallet:
         specifier: ^0.2.8
         version: 0.2.10(@babel/core@7.27.1)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
-      passport:
-        specifier: ^0.7.0
-        version: 0.7.0
       passport-twitter:
         specifier: ^1.0.4
         version: 1.0.4

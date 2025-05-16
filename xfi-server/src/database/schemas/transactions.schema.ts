@@ -3,60 +3,79 @@ import * as mongoose from 'mongoose';
 
 export type TransactionDocument = mongoose.HydratedDocument<Transaction>;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: { createdAt: true, updatedAt: false } })
 export class Transaction {
-  @Prop({ type: mongoose.Schema.Types.String, ref: 'User' })
-  wallet: string;
+  @Prop({ type: String, ref: 'User', required: true })
+  userId: string;
 
-  @Prop()
-  type: string;
+  @Prop({ type: String, enum: ['buy', 'sell', 'send', 'tip'], required: true })
+  transactionType: 'buy' | 'sell' | 'send' | 'tip';
 
-  @Prop()
-  txHash: string;
+  @Prop({
+    type: String,
+    enum: ['solana', 'ethereum', 'base', 'arbitrum'],
+    required: true,
+  })
+  chain: 'solana' | 'ethereum' | 'base' | 'arbitrum';
 
-  @Prop()
-  txIndex: number;
+  @Prop({ required: true })
+  amount: string;
 
-  @Prop()
-  blockTimestamp: string;
+  @Prop({
+    type: {
+      address: { type: String, required: true },
+      tokenType: {
+        type: String,
+        enum: ['native', 'stable', 'token'],
+        required: true,
+      },
+    },
+    required: true,
+  })
+  token: {
+    address: string;
+    tokenType: 'native' | 'stable' | 'token';
+  };
 
-  @Prop()
-  tokenOutSymbol: string;
+  @Prop({
+    type: {
+      value: { type: String },
+      receiverType: { type: String, enum: ['wallet', 'ens', 'username'] },
+    },
+    required: false,
+  })
+  receiver?: {
+    value: string;
+    receiverType: 'wallet' | 'ens' | 'username';
+  };
 
-  @Prop()
-  tokenOutName: string;
+  @Prop({ type: String, ref: 'User', required: false })
+  receiverUserId?: string;
 
-  @Prop()
-  tokenOutLogo: string;
+  @Prop({ type: String })
+  txHash?: string;
 
-  @Prop()
-  tokenOutAddress: string;
+  // @Prop({
+  //   type: String,
+  //   enum: ['pending', 'confirmed', 'failed'],
+  //   default: 'pending',
+  // })
+  // status: 'pending' | 'confirmed' | 'failed';
 
-  @Prop()
-  tokenOutAmount: string;
+  @Prop({
+    type: {
+      platform: { type: String },
+      originalCommand: { type: String },
+    },
+    required: false,
+  })
+  meta?: {
+    platform?: string;
+    originalCommand?: string;
+  };
 
-  @Prop()
-  tokenOutAmountUsd: string;
-
-  @Prop()
-  tokenInSymbol: string;
-
-  @Prop()
-  tokenInName: string;
-
-  @Prop()
-  tokenInLogo: string;
-
-  @Prop()
-  tokenInAddress: string;
-
-  @Prop()
-  tokenInAmount: string;
-
-  @Prop()
-  tokenInAmountUsd: string;
+  @Prop({ default: Date.now })
+  createdAt: Date;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
-// Compound unique index for txHash + txIndex
-TransactionSchema.index({ txHash: 1, txIndex: 1 }, { unique: true });

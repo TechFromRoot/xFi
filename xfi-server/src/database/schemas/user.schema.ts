@@ -26,6 +26,13 @@ export class User {
 
   @Prop({ default: false })
   active: boolean;
+
+  @Prop({
+    type: [String],
+    enum: ['solana', 'base', 'ethereum', 'mantle', 'mode', 'arbitrum'],
+    default: ['base', 'solana'],
+  })
+  chains: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -71,7 +71,7 @@ export class TwitterClientInteractions {
       const tweetCandidates = (
         await this.twitterClientBase.fetchSearchTweets(
           `@${twitterUsername}`,
-          3,
+          10, //number of tweets to pull
           SearchMode.Latest,
         )
       ).tweets;
@@ -211,23 +211,23 @@ export class TwitterClientInteractions {
       this.twitterClientBase.saveRequestMessage(message);
     }
 
-    const parsedCommand = this.parseBotCommandService.parseTweetCommand(
-      tweet.text,
-    );
-    let DefiResponse;
-    if (parsedCommand) {
-      //  tweet.userId,
-      DefiResponse = await this.parseBotCommandService.handleTweetCommand(
-        'test',
-        '1881784875478630400',
-      );
-      console.log('this is response :', DefiResponse);
-    } else {
-      console.log('Could not parse input.');
-    }
+    // const parsedCommand = this.parseBotCommandService.parseTweetCommand(
+    //   tweet.text,
+    // );
+    // let DefiResponse;
+    // if (parsedCommand) {
+    //   //  tweet.userId,
+    //   DefiResponse = await this.parseBotCommandService.handleTweetCommand(
+    //     'test',
+    //     '1881784875478630400',
+    //   );
+    //   console.log('this is response :', DefiResponse);
+    // } else {
+    //   console.log('Could not parse input.');
+    // }
 
     const response: Content = {
-      text: `${DefiResponse}`,
+      text: `${tweet.text}`,
       url: tweet.permanentUrl,
       inReplyTo: tweet.inReplyToStatusId
         ? this.getTweetId(tweet.inReplyToStatusId)
@@ -263,7 +263,10 @@ export class TwitterClientInteractions {
             responseMessage.content.action = 'CONTINUE';
           }
           await new this.memoryModel({
-            ...responseMessage,
+            id: responseMessage.id,
+            roomId: responseMessage.roomId,
+            content: responseMessage.text,
+            createdAt: responseMessage.createdAt,
             embedding: this.getZeroEmbedding(),
           }).save();
         }
@@ -282,10 +285,11 @@ export class TwitterClientInteractions {
     }
   }
 
+  //TODO:MxReplies
   buildConversationThread = async (
     tweet: Tweet,
     client: TwitterClientBase,
-    maxReplies: number = 10,
+    maxReplies: number = 20,
   ): Promise<Tweet[]> => {
     const thread: Tweet[] = [];
     const visited: Set<string> = new Set();
