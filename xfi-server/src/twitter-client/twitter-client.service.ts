@@ -11,14 +11,14 @@ export class TwitterClientService {
     private readonly twitterClientBase: TwitterClientBase,
     private readonly twitterClientInteractions: TwitterClientInteractions,
   ) {
-    // this.twitterClientBase
-    //   .init()
-    //   .then(() => {
-    //     this.logger.log('Twitter client initialized');
-    //   })
-    //   .catch((error) => {
-    //     this.logger.error('Error initializing Twitter client:', error);
-    //   });
-    // this.twitterClientInteractions.start();
+    this.twitterClientBase
+      .init()
+      .then(() => {
+        this.logger.log('Twitter client initialized');
+      })
+      .catch((error) => {
+        this.logger.error('Error initializing Twitter client:', error);
+      });
+    this.twitterClientInteractions.start();
   }
 }
