@@ -1,8 +1,8 @@
-POST http://localhost:3000/xfi-agent
+POST http://localhost:3000/twitter-client
 Content-Type: application/json
 
-{
-    "prompt": " ekete.base.eth"
+{ 
+    "prompt": "@TestBots28 tip 0.4016 usdc to B3oQQv6K3VX9wjMkWd426ykHKYamqQvTXuwwLFMSVav3 on solana"
 }
 
 # GET http://localhost:3000

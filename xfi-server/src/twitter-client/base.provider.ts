@@ -13,7 +13,7 @@ import { Cache } from 'cache-manager';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Memory } from 'src/database/schemas/memory.schema';
-import { IMemory } from './interfaces/client.interface';
+// import { IMemory } from './interfaces/client.interface';
 
 type TwitterProfile = {
   id: string;
@@ -411,7 +411,7 @@ export class TwitterClientBase {
     return new Array(1536).fill(0); // or whatever your embedding size is
   }
 
-  async saveRequestMessage(message: IMemory) {
+  async saveRequestMessage(message) {
     if (message.content.text) {
       const recentMessage = await this.memoryModel
         .find({ roomId: message.roomId })
