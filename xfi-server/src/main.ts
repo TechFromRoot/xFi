@@ -22,6 +22,6 @@ async function bootstrap() {
 
   passport.serializeUser((user: any, done: any) => done(null, user));
   passport.deserializeUser((obj: any, done: any) => done(null, obj));
-  await app.listen(3000);
+  await app.listen(3827);
 }
 bootstrap();
