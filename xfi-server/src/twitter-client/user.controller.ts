@@ -1,5 +1,13 @@
-import { Controller, Post, Body, Patch, Param, Get } from '@nestjs/common';
-import { UserService } from './user.service';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Get,
+  Query,
+} from '@nestjs/common';
+import { EvmChain, SolAsset, UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { TwitterApi } from 'twitter-api-v2';
 
@@ -39,6 +47,19 @@ export class UserController {
       username: user.userName,
       name: user.displayName,
     };
+  }
+
+  @Get(':userId/svm-balance')
+  async getUserSvmAssets(@Param('userId') userId: string): Promise<SolAsset[]> {
+    return await this.userService.getUserSVMBalance(userId);
+  }
+
+  @Get(':userId/evm-balance')
+  async getUserEVMBalance(
+    @Param('userId') userId: string,
+    @Query('chain') chain: EvmChain,
+  ): Promise<SolAsset[]> {
+    return this.userService.getUserEVMBalance(userId, chain);
   }
 
   @Get('history/:userId')

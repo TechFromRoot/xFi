@@ -14,7 +14,7 @@ import { HttpService } from '@nestjs/axios';
 import { Transaction } from 'src/database/schemas/transactions.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { console } from 'inspector';
+import { Metaplex } from '@metaplex-foundation/js';
 
 const USDC_ADDRESS_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const USDT_ADDRESS_SOL = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
@@ -556,6 +556,40 @@ export class XfiDefiSolService {
     } catch (error) {
       console.log(error);
       return `error sending token`;
+    }
+  }
+
+  // utility function
+  async getTokenMetadata(mint: any) {
+    try {
+      const connection = new Connection(process.env.SOLANA_RPC, {
+        commitment: 'confirmed',
+      });
+      const metaplex = Metaplex.make(connection);
+
+      const mintAddress = new PublicKey(mint);
+
+      let tokenName;
+      let tokenSymbol;
+
+      const metadataAccount = metaplex
+        .nfts()
+        .pdas()
+        .metadata({ mint: mintAddress });
+
+      const metadataAccountInfo =
+        await connection.getAccountInfo(metadataAccount);
+
+      if (metadataAccountInfo) {
+        const token = await metaplex
+          .nfts()
+          .findByMint({ mintAddress: mintAddress });
+        tokenName = token.name;
+        tokenSymbol = token.symbol;
+        return { tokenName, tokenSymbol };
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
 }

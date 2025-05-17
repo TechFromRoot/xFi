@@ -2,6 +2,6 @@ POST http://localhost:3827/twitter-client
 Content-Type: application/json
 
 { 
-    "prompt": "@TestBots28  tip 0.01 sol  to @eketeUg"
+    "prompt": "@TestBots28 buy FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY for 0.01 sol "
 }
 
