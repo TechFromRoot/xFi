@@ -12,6 +12,7 @@ export const twitterEnvSchema = z.object({
   TWITTER_COOKIES: z.string().optional(),
   TWITTER_2FA_SECRET: z.string().optional(),
   TWITTER_POLL_INTERVAL: z.number().optional(),
+  TWITTER_DM_POLL_INTERVAL: z.number().optional(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -26,6 +27,7 @@ export async function validateTwitterConfig(): Promise<TwitterConfig> {
       TWITTER_COOKIES: process.env.TWITTER_COOKIES,
       TWITTER_2FA_SECRET: process.env.TWITTER_2FA_SECRET,
       TWITTER_POLL_INTERVAL: process.env.TWITTER_POLL_INTERVAL,
+      TWITTER_DM_POLL_INTERVAL: process.env.TWITTER_DM_POLL_INTERVAL,
     };
 
     return twitterEnvSchema.parse(config);

@@ -8,7 +8,6 @@ import { TwitterClientBase } from './base.provider';
 import { twitterConfig } from './config/twitter.config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-
 import { ParseCommandService } from './parse-command';
 import { DirectMessage } from 'src/database/schemas/directMessage.schema';
 
@@ -41,7 +40,7 @@ export class TwitterClientDirectMessage {
       this.handleDirectMessages();
       setTimeout(
         handleDirectMessageLoop,
-        Number(twitterConfig.TWITTER_POLL_INTERVAL || 30) * 1000,
+        Number(twitterConfig.TWITTER_POLL_INTERVAL || 30) * 1000, // Default to 2 minutes
       );
     };
     handleDirectMessageLoop();
