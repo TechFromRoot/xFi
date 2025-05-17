@@ -20,6 +20,7 @@ import {
   DirectMessage,
   DirectMessageSchema,
 } from 'src/database/schemas/directMessage.schema';
+import { Cookies, CookiesSchema } from 'src/database/schemas/cookie.schema';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import {
     MongooseModule.forFeature([
       { name: DirectMessage.name, schema: DirectMessageSchema },
     ]),
+    MongooseModule.forFeature([{ name: Cookies.name, schema: CookiesSchema }]),
     WalletModule,
     XfiDexModule,
   ],

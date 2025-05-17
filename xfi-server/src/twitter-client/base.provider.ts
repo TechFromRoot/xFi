@@ -13,6 +13,7 @@ import { Cache } from 'cache-manager';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Memory } from 'src/database/schemas/memory.schema';
+import { Cookies } from 'src/database/schemas/cookie.schema';
 // import { IMemory } from './interfaces/client.interface';
 
 type TwitterProfile = {
@@ -33,6 +34,7 @@ export class TwitterClientBase {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectModel(Memory.name) readonly memoryModel: Model<Memory>,
+    @InjectModel(Cookies.name) readonly cookiesModel: Model<Cookies>,
   ) {
     this.twitterClient = new Scraper();
     this.requestQueue = new RequestQueue();
@@ -48,31 +50,38 @@ export class TwitterClientBase {
     // Check for Twitter cookies
     if (twitterConfig.TWITTER_COOKIES) {
       const cookiesArray = JSON.parse(twitterConfig.TWITTER_COOKIES);
-
+      console.log('this is cookiesArray :', cookiesArray);
       await this.setCookiesFromArray(cookiesArray);
     } else {
-      const cachedCookies = await this.getCachedCookies(username);
+      console.log(process.env.TWITTER_ID);
+      const cachedCookies = await this.getCachedCookies(process.env.TWITTER_ID);
+      console.log('this is cached cookie :', cachedCookies);
       if (cachedCookies) {
-        await this.setCookiesFromArray(cachedCookies);
+        await this.setCookiesFromArray(cachedCookies.cookies);
       }
     }
 
-    this.logger.log('Waiting for Twitter login');
+    this.logger.log('Waiting for Twitter login...');
     while (true) {
-      await this.twitterClient.login(
-        username,
-        twitterConfig.TWITTER_PASSWORD,
-        twitterConfig.TWITTER_EMAIL,
-        twitterConfig.TWITTER_2FA_SECRET || undefined,
-      );
+      try {
+        await this.twitterClient.login(
+          username,
+          twitterConfig.TWITTER_PASSWORD,
+          twitterConfig.TWITTER_EMAIL,
+          twitterConfig.TWITTER_2FA_SECRET || undefined,
+        );
 
-      if (await this.twitterClient.isLoggedIn()) {
-        const cookies = await this.twitterClient.getCookies();
-        await this.cacheCookies(username, cookies);
-        break;
+        if (await this.twitterClient.isLoggedIn()) {
+          const cookies = await this.twitterClient.getCookies();
+          await this.cacheCookies(process.env.TWITTER_ID, cookies);
+          this.logger.log('Successfully logged in to Twitter.');
+          break;
+        }
+
+        this.logger.warn('Not logged in yet. Retrying...');
+      } catch (error) {
+        this.logger.error(`Login error: ${error.message}`);
       }
-
-      this.logger.error('Failed to login to Twitter trying again...');
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
@@ -205,12 +214,20 @@ export class TwitterClientBase {
     );
   }
 
-  async getCachedCookies(username: string) {
-    return await this.cacheManager.get<any[]>(`twitter/${username}/cookies`);
+  async getCachedCookies(userId: string) {
+    return await this.cookiesModel.findOne({ userId });
   }
 
-  async cacheCookies(username: string, cookies: any[]) {
-    await this.cacheManager.set(`twitter/${username}/cookies`, cookies);
+  async cacheCookies(userId: string, cookies: any[]) {
+    await this.cookiesModel.findOneAndUpdate(
+      { userId },
+      { cookies },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      },
+    );
   }
 
   async getCachedProfile(username: string) {
