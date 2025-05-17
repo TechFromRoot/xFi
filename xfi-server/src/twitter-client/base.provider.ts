@@ -39,7 +39,7 @@ export class TwitterClientBase {
     this.twitterClient = new Scraper();
     this.requestQueue = new RequestQueue();
   }
-
+  // "agent-twitter-client": "^0.0.17",
   async init() {
     //test
     const username = twitterConfig.TWITTER_USERNAME;
@@ -61,29 +61,41 @@ export class TwitterClientBase {
     }
 
     this.logger.log('Waiting for Twitter login...');
-    while (true) {
-      try {
-        await this.twitterClient.login(
-          username,
-          twitterConfig.TWITTER_PASSWORD,
-          twitterConfig.TWITTER_EMAIL,
-          twitterConfig.TWITTER_2FA_SECRET || undefined,
-        );
+    await this.twitterClient.login(
+      username,
+      twitterConfig.TWITTER_PASSWORD,
+      twitterConfig.TWITTER_EMAIL,
+      twitterConfig.TWITTER_2FA_SECRET || undefined,
+    );
 
-        if (await this.twitterClient.isLoggedIn()) {
-          const cookies = await this.twitterClient.getCookies();
-          await this.cacheCookies(process.env.TWITTER_ID, cookies);
-          this.logger.log('Successfully logged in to Twitter.');
-          break;
-        }
-
-        this.logger.warn('Not logged in yet. Retrying...');
-      } catch (error) {
-        this.logger.error(`Login error: ${error.message}`);
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (await this.twitterClient.isLoggedIn()) {
+      const cookies = await this.twitterClient.getCookies();
+      await this.cacheCookies(process.env.TWITTER_ID, cookies);
+      this.logger.log('Successfully logged in to Twitter.');
     }
+    // while (true) {
+    //   try {
+    //     await this.twitterClient.login(
+    //       username,
+    //       twitterConfig.TWITTER_PASSWORD,
+    //       twitterConfig.TWITTER_EMAIL,
+    //       twitterConfig.TWITTER_2FA_SECRET || undefined,
+    //     );
+
+    //     if (await this.twitterClient.isLoggedIn()) {
+    //       const cookies = await this.twitterClient.getCookies();
+    //       await this.cacheCookies(process.env.TWITTER_ID, cookies);
+    //       this.logger.log('Successfully logged in to Twitter.');
+    //       break;
+    //     }
+
+    //     this.logger.warn('Not logged in yet. Retrying...');
+    //   } catch (error) {
+    //     this.logger.error(`Login error: ${error.message}`);
+    //   }
+
+    //   await new Promise((resolve) => setTimeout(resolve, 2000));
+    // }
 
     // Initialize Twitter profile
     this.profile = await this.fetchProfile(username);
