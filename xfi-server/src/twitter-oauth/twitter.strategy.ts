@@ -11,7 +11,7 @@ export class TwitterAuthStrategy extends PassportStrategy(
     super({
       consumerKey: process.env.CONSUMER_KEY,
       consumerSecret: process.env.CONSUMER_SECRET,
-      callbackURL: ' http://localhost:3000/auth/twitter/callback',
+      callbackURL: 'https://app.eventblink.xyz/auth/twitter/callback',
       includeEmail: true,
     });
   }
