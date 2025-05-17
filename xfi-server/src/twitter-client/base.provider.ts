@@ -50,12 +50,11 @@ export class TwitterClientBase {
     // Check for Twitter cookies
     if (twitterConfig.TWITTER_COOKIES) {
       const cookiesArray = JSON.parse(twitterConfig.TWITTER_COOKIES);
-      console.log('this is cookiesArray :', cookiesArray);
+      // console.log('this is cookiesArray :', cookiesArray);
       await this.setCookiesFromArray(cookiesArray);
     } else {
-      console.log(process.env.TWITTER_ID);
       const cachedCookies = await this.getCachedCookies(process.env.TWITTER_ID);
-      console.log('this is cached cookie :', cachedCookies);
+      // console.log('this is cached cookie :', cachedCookies);
       if (cachedCookies) {
         await this.setCookiesFromArray(cachedCookies.cookies);
       }
@@ -80,7 +79,6 @@ export class TwitterClientBase {
 
         this.logger.warn('Not logged in yet. Retrying...');
       } catch (error) {
-        console.log(error);
         this.logger.error(`Login error: ${error.message}`);
       }
 
