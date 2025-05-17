@@ -30,7 +30,7 @@ export class UserController {
     //   console.error('Failed to fetch Twitter user:', err);
     //   return null;
     // }
-    const user = this.userService.getUserById(userId);
+    const user = await this.userService.getUserById(userId);
     return {
       ...user,
       username: "eketeUg",
