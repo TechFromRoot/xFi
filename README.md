@@ -140,7 +140,7 @@ Coming soon — Stay tuned for open-source modules and contribution guidelines.
 
 ## 📩 Contact
 
-For support or collaboration, reach out via [Twitter](https://twitter.com/xFi_bot)
+For support or collaboration, reach out via [Twitter](https://x.com/xFi_bot)
 
 ---
 
