@@ -140,10 +140,10 @@ Coming soon — Stay tuned for open-source modules and contribution guidelines.
 
 ## 📩 Contact
 
-For support or collaboration, reach out via [Twitter](https://twitter.com/xFi_bot) or [email@example.com] (replace with actual).
+For support or collaboration, reach out via [Twitter](https://twitter.com/xFi_bot)
 
 ---
 
 ## 📝 License
 
-MIT License – Free to use, fork, and build upon.
+MIT License
