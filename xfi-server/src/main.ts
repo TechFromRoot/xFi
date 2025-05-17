@@ -22,6 +22,12 @@ async function bootstrap() {
 
   passport.serializeUser((user: any, done: any) => done(null, user));
   passport.deserializeUser((obj: any, done: any) => done(null, obj));
+  const server = app.getHttpServer();
+  const router = server._events.request._router;
+  const availableRoutes = router.stack
+    .filter(r => r.route)
+    .map(r => r.route.path);
+  console.log('Available routes:', availableRoutes);
   await app.listen(3827);
 }
 bootstrap();
