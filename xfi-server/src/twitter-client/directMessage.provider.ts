@@ -41,7 +41,7 @@ export class TwitterClientDirectMessage {
       this.handleDirectMessages();
       setTimeout(
         handleDirectMessageLoop,
-        Number(twitterConfig.TWITTER_POLL_INTERVAL || 30) * 1000, // Default to 2 minutes
+        Number(twitterConfig.TWITTER_POLL_INTERVAL || 30) * 1000,
       );
     };
     handleDirectMessageLoop();

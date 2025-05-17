@@ -597,8 +597,13 @@ export class ParseCommandService {
     // for directMessages
     const createAccountRegex =
       /\b((c(?:rea|ret|re)te?|a(?:ctiv|ctvat|ctiv)ate?)( (my )?(new )?account)?|i want (to )?(c(?:rea|ret|re)te?|a(?:ctiv|ctvat|ctiv)ate?)(( a)?( new)?( my)? account)?)\b/i;
+
+    const walletRegex =
+      /\b(?:get(?:\s+me)?|show|see|what(?:'|’)?s|what\s+is|can\s+you\s+show|i\s+want\s+to\s+see|give(?:\s+me)?)?\s*(?:my\s*)?(wallet(?:\s+address)?|wallet\s+addr|walletaddr|walletaddress)\b/i;
+
     const createAccountMatch = normalized.match(createAccountRegex);
     const balanceMatch = normalized.toLowerCase().match(balanceRegex);
+    const getWalletMatch = normalized.toLowerCase().match(walletRegex);
 
     try {
       this.logger.log(tweet);
@@ -609,9 +614,11 @@ export class ParseCommandService {
         if (createAccountMatch) {
           if (user) {
             const updatedUser = await this.userModel.findOneAndUpdate(
-              { userId: user.id },
+              { userId: user.userId },
               { active: true },
+              { new: true },
             );
+
             return `Account Activated\n\nEVM ADDRESS:\n${updatedUser.evmWalletAddress}\n\nSOLANA ADDRESS:\n${updatedUser.svmWalletAddress}`;
           } else {
             const newUser = await this.getOrCreateUser(
@@ -696,6 +703,8 @@ export class ParseCommandService {
           solana: solanaBalance,
         });
         return formattedUserBalance;
+      } else if (createAccountMatch || getWalletMatch) {
+        return `Your Account:\n\nEVM ADDRESS:\n${user.evmWalletAddress}\n\nSOLANA ADDRESS:\n${user.svmWalletAddress}`;
       }
 
       const [decryptedSVMWallet, decryptedEvmWallet] = await Promise.all([
