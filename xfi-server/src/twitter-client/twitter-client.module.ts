@@ -34,6 +34,6 @@ import {
     UserService,
   ],
   controllers: [TwitterClientController, UserController],
-  exports: [UserService]
+  exports: [UserService],
 })
 export class TwitterClientModule {}

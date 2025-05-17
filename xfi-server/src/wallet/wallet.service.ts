@@ -412,4 +412,46 @@ export class WalletService {
       throw new Error(`Failed to transfer SPL token: ${error.message}`);
     }
   };
+
+  transferEth = async (
+    privateKey: string,
+    recipientAddress: string,
+    amount: number,
+    rpcURL: string,
+    description?: string,
+  ): Promise<Record<any, unknown>> => {
+    const transer = await multichainWallet.transfer({
+      recipientAddress,
+      amount,
+      network: 'ethereum',
+      rpcUrl: rpcURL,
+      privateKey,
+      // gasPrice: '20', // TODO: increase this for faster transaction
+      data: description || '',
+    });
+
+    return transer;
+  };
+
+  transferERC20 = async (
+    privateKey: string,
+    recipientAddress: string,
+    tokenAddress: string,
+    amount: number,
+    rpcURL: string,
+    description?: string,
+  ): Promise<Record<any, unknown>> => {
+    const transer = await multichainWallet.transfer({
+      recipientAddress,
+      amount,
+      network: 'ethereum',
+      rpcUrl: rpcURL,
+      privateKey,
+      // gasPrice: '20', // TODO: increase this for faster transaction
+      tokenAddress: tokenAddress,
+      data: description || '',
+    });
+
+    return transer;
+  };
 }

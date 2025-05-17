@@ -71,7 +71,7 @@ export class TwitterClientInteractions {
       const tweetCandidates = (
         await this.twitterClientBase.fetchSearchTweets(
           `@${twitterUsername}`,
-          10, //number of tweets to pull
+          20, //number of tweets to pull
           SearchMode.Latest,
         )
       ).tweets;
