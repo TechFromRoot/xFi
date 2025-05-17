@@ -19,7 +19,7 @@ export class TwitterOAuthController {
     @Get()
     async twitterAuthRedirect(@Res() res: Response) {
         // Initiate Twitter OAuth
-        return res.redirect('/auth/twitter/login');
+        return res.redirect('/xfi/auth/twitter/login');
     }
 
     @Get('login')
