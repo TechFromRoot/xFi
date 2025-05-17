@@ -205,13 +205,7 @@ export class TwitterClientInteractions {
 
       const message = {
         id: tweetId,
-        content: JSON.stringify({
-          text: tweet.text,
-          url: tweet.permanentUrl,
-          inReplyTo: tweet.inReplyToStatusId
-            ? this.getTweetId(tweet.inReplyToStatusId)
-            : undefined,
-        }),
+        content: tweet.text,
         roomId,
         createdAt: tweet.timestamp * 1000,
       };
