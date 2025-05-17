@@ -20,14 +20,14 @@ export class TwitterOAuthController {
     async twitterAuthRedirect(@Res() res: Response) {
         // Initiate Twitter OAuth
         // return res.redirect('auth/twitter/login');
-        return res.redirect('auth/twitter/login');
+        // return res.redirect('auth/twitter/login');
     }
 
-    @Get('login')
-    @UseGuards(AuthGuard('twitter'))
-    twitterLogin() {
-        // Redirect handled by Passport
-    }
+    // @Get('login')
+    // @UseGuards(AuthGuard('twitter'))
+    // twitterLogin() {
+    //     // Redirect handled by Passport
+    // }
 
     @Get('callback')
     @UseGuards(AuthGuard('twitter'))

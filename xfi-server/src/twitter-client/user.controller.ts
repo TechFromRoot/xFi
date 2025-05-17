@@ -33,10 +33,8 @@ export class UserController {
     const user = this.userService.getUserById(userId);
     return {
       ...user,
-      ...{
-        username: "eketeUg",
-        name: "EKETE"
-      },
+      username: "eketeUg",
+      name: "EKETE"
     };
   }
 
