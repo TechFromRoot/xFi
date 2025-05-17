@@ -1,14 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { API_URLS } from '@raydium-io/raydium-sdk-v2';
-import { firstValueFrom } from 'rxjs';
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  VersionedTransaction,
-} from '@solana/web3.js';
-import bs58 from 'bs58';
-import { getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
+import { Injectable, Logger } from '@nestjs/common';
 import { WalletService } from 'src/wallet/wallet.service';
 import { HttpService } from '@nestjs/axios';
 import { Transaction } from 'src/database/schemas/transactions.schema';
@@ -20,6 +10,7 @@ const USDC_ADDRESS_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 @Injectable()
 export class XfiDefiBaseService {
+  private readonly logger = new Logger(XfiDefiBaseService.name);
   constructor(
     private readonly httpService: HttpService,
     private readonly walletService: WalletService,
@@ -34,11 +25,62 @@ export class XfiDefiBaseService {
     data: Partial<Transaction>,
   ) {
     try {
-      const userAddress =
+      const { address } =
         await this.walletService.getEvmAddressFromPrivateKey(privateKey);
 
-      const balance = await this.walletService.getNativeEthBalance(
-        String(userAddress),
+      this.logger.log(address);
+
+      const { balance } = await this.walletService.getNativeEthBalance(
+        String(address),
+        process.env.BASE_RPC_URL,
+      );
+
+      this.logger.log(balance);
+
+      if (balance < Number(amount)) {
+        return 'Insufficient balance.';
+      }
+
+      const txn = await this.walletService.transferEth(
+        privateKey,
+        reciever,
+        parseFloat(amount),
+        process.env.BASE_RPC_URL,
+      );
+      const receipt =
+        txn?.wait && typeof txn.wait === 'function' ? await txn.wait() : txn;
+
+      if (receipt.status === 1) {
+        try {
+          await new this.transactionModel({
+            ...data,
+            txHash: receipt.transactionHash,
+          }).save();
+        } catch (err) {
+          console.error('Failed to save transaction:', err.message);
+        }
+        return `https://basescan.org/tx/${receipt.transactionHash}`;
+      }
+      return;
+    } catch (error) {
+      console.log(error);
+      this.logger.log(error);
+      return `error sending token`;
+    }
+  }
+
+  async sendEthSmartAccount(
+    privateKey: string,
+    amount: string,
+    reciever: string,
+    data: Partial<Transaction>,
+  ) {
+    try {
+      const { address } =
+        await this.walletService.getEvmAddressFromPrivateKey(privateKey);
+
+      const { balance } = await this.walletService.getNativeEthBalance(
+        String(address),
         process.env.BASE_RPC_URL,
       );
 
@@ -46,32 +88,34 @@ export class XfiDefiBaseService {
         return 'Insufficient balance.';
       }
 
-      const response = await this.walletService.transferSOL(
+      const txn = await this.walletService.transferEth(
         privateKey,
         reciever,
         parseFloat(amount),
         process.env.SOLANA_RPC,
       );
+      const receipt =
+        txn?.wait && typeof txn.wait === 'function' ? await txn.wait() : txn;
 
-      if (response.signature) {
+      if (receipt.status === 1) {
         try {
           await new this.transactionModel({
             ...data,
-            txHash: response.signature,
+            txHash: receipt.transactionHash,
           }).save();
         } catch (err) {
           console.error('Failed to save transaction:', err.message);
         }
-        return `https://solscan.io/tx/${response.signature}`;
+        return `https://basescan.org/tx/${receipt.transactionHash}`;
       }
       return;
     } catch (error) {
-      console.log(error);
+      this.logger.log(error);
       return `error sending token`;
     }
   }
 
-  async sendSplToken(
+  async sendERC20(
     privateKey: string,
     token: string,
     amount: string,
@@ -79,30 +123,28 @@ export class XfiDefiBaseService {
     data: Partial<Transaction>,
   ) {
     try {
-      const tokenMint =
-        token.toLowerCase() === 'usdc' ? USDC_ADDRESS_SOL : USDT_ADDRESS_SOL;
+      const { address } =
+        await this.walletService.getEvmAddressFromPrivateKey(privateKey);
 
-      const userAccount = Keypair.fromSecretKey(bs58.decode(privateKey));
-      const userAddress = userAccount.publicKey;
+      console.log(address);
 
-      const { balance } = await this.walletService.getSPLTokenBalance(
-        String(userAddress),
-        tokenMint,
-        process.env.SOLANA_RPC,
-        6,
+      const { balance } = await this.walletService.getERC20Balance(
+        String(address),
+        USDC_ADDRESS_BASE,
+        process.env.BASE_RPC_URL,
       );
+      console.log(balance);
 
       if (balance < Number(amount)) {
         return 'Insufficient balance.';
       }
 
-      const response = await this.walletService.transferSPLToken(
+      const response = await this.walletService.transferERC20(
         privateKey,
         reciever,
+        USDC_ADDRESS_BASE,
         parseFloat(amount),
-        tokenMint,
-        process.env.SOLANA_RPC,
-        6,
+        process.env.BASE_RPC_URL,
       );
 
       if (response.signature) {
@@ -118,6 +160,7 @@ export class XfiDefiBaseService {
       }
       return;
     } catch (error) {
+      this.logger.log(error);
       console.log(error);
       return `error sending token`;
     }
