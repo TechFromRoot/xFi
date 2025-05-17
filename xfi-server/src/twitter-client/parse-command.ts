@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Transaction } from 'src/database/schemas/transactions.schema';
 import { User } from 'src/database/schemas/user.schema';
 import { WalletService } from 'src/wallet/wallet.service';
+import { XfiDefiBaseService } from 'src/xfi-defi/xfi-defi-base.service';
 import { XfiDefiSolService } from 'src/xfi-defi/xfi-defi-sol.service';
 
 type Action = 'buy' | 'sell' | 'send' | 'tip';
@@ -47,6 +48,7 @@ export class ParseCommandService {
   constructor(
     private readonly walletService: WalletService,
     private readonly dexService: XfiDefiSolService,
+    private readonly defiBaseService: XfiDefiBaseService,
     @InjectModel(User.name)
     readonly userModel: Model<User>,
   ) {}
@@ -208,6 +210,26 @@ export class ParseCommandService {
           data,
         );
         return response;
+      } else if (chain == 'base') {
+        const data: Partial<Transaction> = {
+          userId: userKey.userId,
+          transactionType: 'send',
+          chain: 'base',
+          amount: amount,
+          token: { address: 'eth', tokenType: 'native' },
+          receiver: { value: to, receiverType: 'wallet' },
+          meta: {
+            platform: 'twitter',
+            originalCommand: originalCommand,
+          },
+        };
+        const response = await this.defiBaseService.sendEth(
+          userKey.evmPK,
+          amount,
+          to,
+          data,
+        );
+        return response;
       }
     } catch (error) {
       console.log(error);
@@ -240,6 +262,27 @@ export class ParseCommandService {
         };
         const response = await this.dexService.sendSplToken(
           userKey.svmPK,
+          token,
+          amount,
+          to,
+          data,
+        );
+        return response;
+      } else if (chain == 'base') {
+        const data: Partial<Transaction> = {
+          userId: userKey.userId,
+          transactionType: 'send',
+          chain: 'base',
+          amount: amount,
+          token: { address: token, tokenType: 'stable' },
+          receiver: { value: to, receiverType: 'wallet' },
+          meta: {
+            platform: 'twitter',
+            originalCommand: originalCommand,
+          },
+        };
+        const response = await this.defiBaseService.sendERC20(
+          userKey.evmPK,
           token,
           amount,
           to,

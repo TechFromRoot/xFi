@@ -6,7 +6,7 @@ import { TwitterApi } from 'twitter-api-v2';
 @Controller('users')
 export class UserController {
   private twitterClient = new TwitterApi(process.env.TWITTER_BEARER_TOKEN);
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
@@ -33,8 +33,8 @@ export class UserController {
     const user = this.userService.getUserById(userId);
     return {
       ...user,
-      ...twitterData
-    }
+      ...twitterData,
+    };
   }
 
   @Get('history/:userId')
