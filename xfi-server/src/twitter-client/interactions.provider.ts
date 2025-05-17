@@ -108,11 +108,11 @@ export class TwitterClientInteractions {
 
           const roomId = this.getRoomId(tweet.conversationId);
 
-          if (tweet.userId === process.env.TWITTER_ID) {
-            this.logger.log('skipping tweet from bot itself', tweet.id);
-            // Skip processing if the tweet is from the bot itself
-            return;
-          }
+          // if (tweet.userId === process.env.TWITTER_ID) {
+          //   this.logger.log('skipping tweet from bot itself', tweet.id);
+          //   // Skip processing if the tweet is from the bot itself
+          //   return;
+          // }
 
           const thread = await this.buildConversationThread(
             tweet,
