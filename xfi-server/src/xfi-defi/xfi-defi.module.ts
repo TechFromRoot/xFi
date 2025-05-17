@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { XfiDexService } from './xfi-dex.service';
+import { XfiDefiSolService } from './xfi-defi-sol.service';
 import { WalletModule } from 'src/wallet/wallet.module';
 import { HttpModule } from '@nestjs/axios';
 import {
@@ -7,6 +7,7 @@ import {
   TransactionSchema,
 } from 'src/database/schemas/transactions.schema';
 import { MongooseModule } from '@nestjs/mongoose';
+import { XfiDefiBaseService } from './xfi-defi-base.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { MongooseModule } from '@nestjs/mongoose';
       { name: Transaction.name, schema: TransactionSchema },
     ]),
   ],
-  exports: [XfiDexService],
-  providers: [XfiDexService],
+  exports: [XfiDefiSolService, XfiDefiBaseService],
+  providers: [XfiDefiSolService, XfiDefiBaseService],
 })
 export class XfiDexModule {}

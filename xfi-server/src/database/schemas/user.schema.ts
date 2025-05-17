@@ -27,6 +27,12 @@ export class User {
   @Prop({ default: false })
   active: boolean;
 
+  @Prop({ default: false })
+  isBaseSmartWallet: boolean;
+
+  @Prop()
+  baseSmartWallet: string;
+
   @Prop({
     type: [String],
     enum: ['solana', 'base', 'ethereum', 'mantle', 'mode', 'arbitrum'],

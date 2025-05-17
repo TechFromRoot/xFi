@@ -211,23 +211,18 @@ export class TwitterClientInteractions {
       this.twitterClientBase.saveRequestMessage(message);
     }
 
-    // const parsedCommand = this.parseBotCommandService.parseTweetCommand(
-    //   tweet.text,
-    // );
-    // let DefiResponse;
-    // if (parsedCommand) {
-    //   //  tweet.userId,
-    //   DefiResponse = await this.parseBotCommandService.handleTweetCommand(
-    //     'test',
-    //     '1881784875478630400',
-    //   );
-    //   console.log('this is response :', DefiResponse);
-    // } else {
-    //   console.log('Could not parse input.');
-    // }
+    const defiResponse = await this.parseBotCommandService.handleTweetCommand(
+      tweet.text,
+      tweet.userId,
+    );
+    if (!defiResponse) {
+      return;
+    }
+
+    console.log('this is response :', defiResponse);
 
     const response: Content = {
-      text: `${tweet.text}`,
+      text: defiResponse,
       url: tweet.permanentUrl,
       inReplyTo: tweet.inReplyToStatusId
         ? this.getTweetId(tweet.inReplyToStatusId)

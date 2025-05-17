@@ -1,8 +1,8 @@
-POST http://localhost:3000/twitter-client
+POST http://localhost:3827/twitter-client
 Content-Type: application/json
 
 { 
-    "prompt": "@TestBots28 tip 0.01 sol to B3oQQv6K3VX9wjMkWd426ykHKYamqQvTXuwwLFMSVav3"
+    "prompt": "@Xfi tip 4 sol to B3oQQv6K3VX9wjMkWd426ykHKYamqQvTXuwwLFMSVav3"
 }
 
 # GET http://localhost:3000

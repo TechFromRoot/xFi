@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Transaction } from 'src/database/schemas/transactions.schema';
 import { User } from 'src/database/schemas/user.schema';
 import { WalletService } from 'src/wallet/wallet.service';
-import { XfiDexService } from 'src/xfi-dex/xfi-dex.service';
+import { XfiDefiSolService } from 'src/xfi-defi/xfi-defi-sol.service';
 
 type Action = 'buy' | 'sell' | 'send' | 'tip';
 // type Chain = 'solana' | 'ethereum' | 'base' | 'arbitrum';
@@ -46,7 +46,7 @@ export class ParseCommandService {
   private readonly logger = new Logger(ParseCommandService.name);
   constructor(
     private readonly walletService: WalletService,
-    private readonly dexService: XfiDexService,
+    private readonly dexService: XfiDefiSolService,
     @InjectModel(User.name)
     readonly userModel: Model<User>,
   ) {}

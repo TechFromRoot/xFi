@@ -20,7 +20,7 @@ const USDC_ADDRESS_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const USDT_ADDRESS_SOL = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
 
 @Injectable()
-export class XfiDexService {
+export class XfiDefiSolService {
   constructor(
     private readonly httpService: HttpService,
     private readonly walletService: WalletService,
