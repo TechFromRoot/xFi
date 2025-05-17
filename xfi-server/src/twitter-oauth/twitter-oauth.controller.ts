@@ -44,7 +44,8 @@ export class TwitterOAuthController {
                 userId: twitterUser.id,
                 userName: twitterUser.username
             });
-            return res.redirect(`http://localhost:5173/home?twitterId=${twitterUser.id}`);
+            // return res.redirect(`http://localhost:5173/home?twitterId=${twitterUser.id}`);
+            return res.redirect(`https://xfi-app.vercel.app/home?twitterId=${twitterUser.id}`);
         } catch (err) {
             console.error(err);
             throw new HttpException('Failed to save user', HttpStatus.INTERNAL_SERVER_ERROR);
