@@ -45,13 +45,13 @@ export class TwitterClientInteractions {
 
     const twitterUsername = twitterConfig.TWITTER_USERNAME;
     try {
-      // check direct dm
+      // // check direct dm
       // const dm =
       //   await this.twitterClientBase.twitterClient.getDirectMessageConversations(
       //     this.twitterClientBase.profile.id,
       //   );
 
-      // console.log('dm   :', dm.conversations);
+      // // console.log('dm   :', dm.conversations);
       // await this.twitterClientBase.twitterClient.sendDirectMessage(
       //   dm.conversations[0].conversationId,
       //   'Yo man',
@@ -83,7 +83,8 @@ export class TwitterClientInteractions {
       uniqueTweetCandidates
         .sort((a, b) => a.id.localeCompare(b.id))
         .filter((tweet) => tweet.userId !== twitterConfig.TWITTER_USERNAME);
-      console.log('tweets \n :', uniqueTweetCandidates);
+      // console.log('tweets \n :', uniqueTweetCandidates);
+
       // for each tweet candidate, handle the tweet
       for (const tweet of uniqueTweetCandidates) {
         if (

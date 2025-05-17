@@ -10,6 +10,7 @@ import { ethers, Contract } from 'ethers';
 import L2ResolverAbi from './utils/l2ResolverAbi';
 import { XfiDefiEthereumService } from 'src/xfi-defi/xfi-defi-ethereum.service';
 import { TwitterClientBase } from './base.provider';
+import { UserService } from './user.service';
 
 const BASENAME_L2_RESOLVER_ADDRESS =
   '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD';
@@ -38,9 +39,9 @@ interface UserKey {
 
 interface ParsedCommand {
   action: Action;
-  chain: string;
-  amount: string;
-  token: Token;
+  chain?: string;
+  amount?: string;
+  token?: Token;
   receiver?: Receiver;
 }
 
@@ -61,6 +62,7 @@ export class ParseCommandService {
     private readonly dexService: XfiDefiSolService,
     private readonly defiBaseService: XfiDefiBaseService,
     private readonly twitterClientBase: TwitterClientBase,
+    private readonly userService: UserService,
     @InjectModel(User.name)
     readonly userModel: Model<User>,
   ) {
@@ -586,14 +588,116 @@ export class ParseCommandService {
   }
 
   // --- 🎯 BUNDLED ENTRY FUNCTION ---
-  async handleTweetCommand(tweet: string, userId: string) {
+  async handleTweetCommand(tweet: string, userId: string, username?: string) {
+    const normalized = tweet.replace(/\s+/g, ' ').trim();
+
+    const balanceRegex =
+      /\b(?:get(?:\s+me)?|check|show|see|what(?:'|’)?s|what\s+is|can\s+you\s+get|i\s+want\s+to\s+see)?\s*(?:my\s*)?(?:(solana|sol|ethereum|eth|base)\s+)?balance(?:\s*(?:on|of|for)?\s*(solana|sol|ethereum|eth|base))?\b/i;
+
+    // for directMessages
+    const createAccountRegex =
+      /\b((c(?:rea|ret|re)te?|a(?:ctiv|ctvat|ctiv)ate?)( (my )?(new )?account)?|i want (to )?(c(?:rea|ret|re)te?|a(?:ctiv|ctvat|ctiv)ate?)(( a)?( new)?( my)? account)?)\b/i;
+    const createAccountMatch = normalized.match(createAccountRegex);
+    const balanceMatch = normalized.toLowerCase().match(balanceRegex);
+
     try {
       this.logger.log(tweet);
       const user = await this.userModel.findOne({ userId });
+
       if (!user || !user.active) {
+        // === CREATE / ACTIVATE ACCOUNT ===
+        if (createAccountMatch) {
+          if (user) {
+            const updatedUser = await this.userModel.findOneAndUpdate(
+              { userId: user.id },
+              { active: true },
+            );
+            return `Account Activated\n\nEVM ADDRESS:\n${updatedUser.evmWalletAddress}\n\nSOLANA ADDRESS:\n${updatedUser.svmWalletAddress}`;
+          } else {
+            const newUser = await this.getOrCreateUser(
+              {
+                id: userId,
+                username,
+              },
+              true,
+            );
+            return `Account created\n\nEVM ADDRESS:\n${newUser.evmWalletAddress}\n\nSOLANA ADDRESS:\n${newUser.svmWalletAddress}`;
+          }
+        }
         const appUrl = process.env.APP_URL || 'https://x.com/xFi_bot';
-        return `Please go to ${appUrl} and create/activate your account to use this bot`;
+        return `Please go to ${appUrl} or send a direct message to create/activate your account to use this bot`;
+      } else if (balanceMatch) {
+        const rawChain = balanceMatch?.[1] || balanceMatch?.[2]; // either position
+        const chain = this.normalizeChain(rawChain);
+        // const action = balanceMatch ? 'balance' : null;
+        let solanaBalance;
+        let ethBalance;
+        let baseBalance;
+        let formattedUserBalance;
+        if (chain) {
+          switch (chain) {
+            case 'solana':
+              solanaBalance = await this.userService.getUserSVMBalance(userId);
+              console.log(solanaBalance);
+              formattedUserBalance = this.formatBalances({
+                solana: solanaBalance,
+              });
+              return formattedUserBalance;
+
+            case 'base':
+              baseBalance = await this.userService.getUserEVMBalance(
+                userId,
+                'base',
+              );
+              console.log(baseBalance);
+              formattedUserBalance = this.formatBalances({
+                base: baseBalance,
+              });
+              return formattedUserBalance;
+
+            case 'ethereum':
+              ethBalance = await this.userService.getUserEVMBalance(
+                userId,
+                'ethereum',
+              );
+              console.log(ethBalance);
+              formattedUserBalance = this.formatBalances({
+                ethereum: ethBalance,
+              });
+              return formattedUserBalance;
+
+            default:
+              solanaBalance = await this.userService.getUserSVMBalance(userId);
+              baseBalance = await this.userService.getUserEVMBalance(
+                userId,
+                'base',
+              );
+              ethBalance = await this.userService.getUserEVMBalance(
+                userId,
+                'ethereum',
+              );
+              formattedUserBalance = this.formatBalances({
+                ethereum: ethBalance,
+                base: baseBalance,
+                solana: solanaBalance,
+              });
+              return formattedUserBalance;
+          }
+        }
+        solanaBalance = await this.userService.getUserSVMBalance(userId);
+        baseBalance = await this.userService.getUserEVMBalance(userId, 'base');
+        ethBalance = await this.userService.getUserEVMBalance(
+          userId,
+          'ethereum',
+        );
+        formattedUserBalance = this.formatBalances({
+          ethereum: ethBalance,
+          base: baseBalance,
+          solana: solanaBalance,
+        });
+        return formattedUserBalance;
       }
+
       const [decryptedSVMWallet, decryptedEvmWallet] = await Promise.all([
         this.walletService.decryptSVMWallet(
           process.env.DEFAULT_WALLET_PIN!,
@@ -706,7 +810,10 @@ export class ParseCommandService {
     }
   }
 
-  private async getOrCreateUser(user: { id: string; username: string }) {
+  private async getOrCreateUser(
+    user: { id: string; username: string },
+    dm?: boolean,
+  ) {
     let existingUser = await this.userModel.findOne({ userId: user.id });
 
     if (!existingUser) {
@@ -732,11 +839,63 @@ export class ParseCommandService {
         evmWalletAddress: newEvmWallet.address,
         svmWalletDetails: encryptedSvmWalletDetails.json,
         svmWalletAddress: newSolanaWallet.address,
-        active: false,
+        active: dm ? true : false, // make account active ii it was a directmessage comamnd
       });
       return existingUser.save();
     }
 
     return existingUser;
   }
+
+  private normalizeChain = (raw) => {
+    if (!raw) return null;
+    const value = raw.toLowerCase();
+    if (value === 'sol' || value === 'solana') return 'solana';
+    if (value === 'eth' || value === 'ethereum') return 'ethereum';
+    if (value === 'base') return 'base';
+    return null;
+  };
+
+  // to formate directMessge balance response
+  private formatBalances(balances: Record<string, any[]>): string {
+    let result = 'BALANCE:\n\n';
+
+    for (const [chain, tokens] of Object.entries(balances)) {
+      result += `chain: ${chain}\n`;
+
+      for (const token of tokens) {
+        const amountNum =
+          typeof token.amount === 'number'
+            ? token.amount
+            : parseFloat(token.amount);
+
+        const formattedAmount = Number(amountNum).toPrecision(4);
+        result += `${formattedAmount} - ${token.tokenSymbol}\n`;
+      }
+
+      result += `\n`; // extra newline between chains
+    }
+
+    return result.trim(); // remove last extra newline
+  }
+
+  // private formatBalances(balances: Record<string, any[]>): string {
+  //   let result = 'BALANCE:\n\n';
+
+  //   for (const [chain, tokens] of Object.entries(balances)) {
+  //     result += `chain: ${chain}\n`;
+
+  //     for (const token of tokens) {
+  //       const amount =
+  //         typeof token.amount === 'number'
+  //           ? token.amount
+  //           : parseFloat(token.amount);
+  //       result += `${amount} - ${token.tokenSymbol}\n`;
+  //     }
+
+  //     result += `\n`; // extra newline between chains
+  //   }
+
+  //   return result.trim(); // remove last extra newline
+  // }
 }

@@ -59,11 +59,11 @@ export class UserController {
     @Param('userId') userId: string,
     @Query('chain') chain: EvmChain,
   ): Promise<SolAsset[]> {
-    return this.userService.getUserEVMBalance(userId, chain);
+    return await this.userService.getUserEVMBalance(userId, chain);
   }
 
   @Get('history/:userId')
   async getHistory(@Param('userId') userId: string) {
-    return this.userService.getTransactionHistory(userId);
+    return await this.userService.getTransactionHistory(userId);
   }
 }

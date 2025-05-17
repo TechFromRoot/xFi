@@ -15,6 +15,11 @@ import {
   Transaction,
   TransactionSchema,
 } from 'src/database/schemas/transactions.schema';
+import { TwitterClientDirectMessage } from './directMessage.provider';
+import {
+  DirectMessage,
+  DirectMessageSchema,
+} from 'src/database/schemas/directMessage.schema';
 
 @Module({
   imports: [
@@ -23,6 +28,9 @@ import {
     MongooseModule.forFeature([
       { name: Transaction.name, schema: TransactionSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: DirectMessage.name, schema: DirectMessageSchema },
+    ]),
     WalletModule,
     XfiDexModule,
   ],
@@ -30,6 +38,7 @@ import {
     TwitterClientService,
     TwitterClientBase,
     TwitterClientInteractions,
+    TwitterClientDirectMessage,
     ParseCommandService,
     UserService,
   ],

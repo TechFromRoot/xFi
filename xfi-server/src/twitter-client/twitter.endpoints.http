@@ -2,6 +2,8 @@ POST http://localhost:3827/twitter-client
 Content-Type: application/json
 
 { 
-    "prompt": "@TestBots28 buy FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY for 0.01 sol "
+
+    "prompt": "balance"
 }
 
+    # "prompt": "buy FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY for 1 sol "

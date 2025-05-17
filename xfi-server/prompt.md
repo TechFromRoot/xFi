@@ -20,3 +20,21 @@ send 10 USDT to 0xabc123abc456abc789abc123abc456abc789 on base
 tip 0.01 eth to 0x111aaa222bbb333ccc444ddd555eee666fff777  
 send 5 usdc to 0xabc123... on mantle  
 send 0.2 usdt to twiFCinyW9djRxsoyDGVz4Qm6UMmBMtoCj6BvYifwyGDN
+
+"what is my solana balance",
+"what is my eth balance",
+"what is my base balance",
+"get sol balance",
+"check balance on eth",
+"i want to see my balance of sol",
+"get me my sol balance",
+"check my ethereum balance",
+"what's my base balance",
+"i want to see my solana balance",
+"show me eth balance",
+"get me my sol balance",
+"check my ethereum balance",
+"what's my base balance",
+"i want to see my solana balance",
+"show me eth balance",
+"solana balance",
