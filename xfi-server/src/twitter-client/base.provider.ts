@@ -80,6 +80,7 @@ export class TwitterClientBase {
 
         this.logger.warn('Not logged in yet. Retrying...');
       } catch (error) {
+        console.log(error);
         this.logger.error(`Login error: ${error.message}`);
       }
 
