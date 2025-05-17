@@ -1,9 +1,9 @@
 @TestBots28 buy FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY for 0.01 sol
-@TestBots28 buy 0.01 SOL of FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY
+@xFi_bot buy 0.01 SOL of FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY
 
 @TestBots28 sell all of FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY
 @TestBots28 sell 50% of FQgtfugBdpFN7PZ6NdPrZpVLDBrPGxXesi4gVu3vErhY
-
+@xFi_bot
 @TestBots28 tip 0.4016 usdc to B3oQQv6K3VX9wjMkWd426ykHKYamqQvTXuwwLFMSVav3 on solana
 
 buy 50sol of JUP on solana  

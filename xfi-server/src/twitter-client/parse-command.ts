@@ -6,6 +6,13 @@ import { User } from 'src/database/schemas/user.schema';
 import { WalletService } from 'src/wallet/wallet.service';
 import { XfiDefiBaseService } from 'src/xfi-defi/xfi-defi-base.service';
 import { XfiDefiSolService } from 'src/xfi-defi/xfi-defi-sol.service';
+import { ethers, Contract } from 'ethers';
+import L2ResolverAbi from './utils/l2ResolverAbi';
+import { XfiDefiEthereumService } from 'src/xfi-defi/xfi-defi-ethereum.service';
+import { TwitterClientBase } from './base.provider';
+
+const BASENAME_L2_RESOLVER_ADDRESS =
+  '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD';
 
 type Action = 'buy' | 'sell' | 'send' | 'tip';
 // type Chain = 'solana' | 'ethereum' | 'base' | 'arbitrum';
@@ -21,6 +28,7 @@ interface Receiver {
   address: string;
   type: ReceiverType;
   value?: string;
+  userId?: string;
 }
 interface UserKey {
   evmPK: string;
@@ -45,13 +53,138 @@ const STABLE_TOKENS = ['usdc', 'usdt'];
 @Injectable()
 export class ParseCommandService {
   private readonly logger = new Logger(ParseCommandService.name);
+  private ethProvider: ethers.JsonRpcProvider;
+  private baseProvider: ethers.JsonRpcApiProvider;
   constructor(
     private readonly walletService: WalletService,
+    private readonly defiEthereumService: XfiDefiEthereumService,
     private readonly dexService: XfiDefiSolService,
     private readonly defiBaseService: XfiDefiBaseService,
+    private readonly twitterClientBase: TwitterClientBase,
     @InjectModel(User.name)
     readonly userModel: Model<User>,
-  ) {}
+  ) {
+    this.ethProvider = new ethers.JsonRpcProvider(process.env.ETHEREUM_RPC);
+    this.baseProvider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL);
+  }
+
+  //   private getEnsChainType(ensName: string): string {
+  //     const parts = ensName.toLowerCase().split('.');
+
+  //     if (parts.length === 3 && parts[2] === 'eth') {
+  //       return parts[1];
+  //     }
+
+  //     if (parts.length === 2 && parts[1] === 'eth') {
+  //       return 'ethereum';
+  //     }
+
+  //     return 'unknown';
+  //   }
+
+  private getEnsChainType(identifier: string): string {
+    if (identifier.startsWith('@')) {
+      return 'twitter';
+    }
+
+    const parts = identifier.toLowerCase().split('.');
+
+    if (parts.length === 3 && parts[2] === 'eth') {
+      return parts[1]; // e.g., 'base' from 'dami.base.eth'
+    }
+
+    if (parts.length === 2 && parts[1] === 'eth') {
+      return 'ethereum'; // e.g., 'dami.eth'
+    }
+
+    return 'unknown';
+  }
+
+  private convertChainIdToCoinType(chainId: number): string {
+    if (chainId === 1) {
+      return 'addr';
+    }
+    const coinType = (0x80000000 | chainId) >>> 0;
+    return coinType.toString(16).toUpperCase();
+  }
+
+  private convertReverseNodeToBytes(address: string, chainId: number): string {
+    const addressFormatted = address.toLowerCase();
+    const addressNode = ethers.solidityPackedKeccak256(
+      ['string'],
+      [addressFormatted.substring(2)],
+    );
+
+    const coinType = this.convertChainIdToCoinType(chainId);
+    const baseReverseNode = ethers.namehash(`${coinType}.reverse`);
+
+    const addressReverseNode = ethers.solidityPackedKeccak256(
+      ['bytes32', 'bytes32'],
+      [baseReverseNode, addressNode],
+    );
+
+    return addressReverseNode;
+  }
+
+  private encodeDnsName(name: string): string {
+    const labels = name.split('.');
+    const buffers = labels.map((label) => {
+      const len = Buffer.from([label.length]);
+      const str = Buffer.from(label, 'utf8');
+      return Buffer.concat([len, str]);
+    });
+    return ethers.hexlify(Buffer.concat([...buffers, Buffer.from([0])]));
+  }
+
+  async getBaseName(address: string): Promise<string | null> {
+    try {
+      const addressReverseNode = this.convertReverseNodeToBytes(address, 8453);
+      const provider = this.baseProvider;
+
+      const contract = new Contract(
+        BASENAME_L2_RESOLVER_ADDRESS,
+        L2ResolverAbi,
+        provider,
+      );
+      const basename = await contract.name(addressReverseNode);
+
+      return basename;
+    } catch (error) {
+      this.logger.error('Error getting basename', error);
+      return null;
+    }
+  }
+
+  async resolveNameToAddress(name: string): Promise<string | null> {
+    try {
+      // 1. Encode the DNS name
+      const dnsEncodedName = this.encodeDnsName(name);
+
+      // 2. Encode the call to addr(bytes32)
+      const node = ethers.namehash(name);
+      const iface = new ethers.Interface([
+        'function addr(bytes32 node) view returns (address)',
+      ]);
+      const encodedCallData = iface.encodeFunctionData('addr', [node]);
+      const provider = this.baseProvider;
+
+      const contract = new Contract(
+        BASENAME_L2_RESOLVER_ADDRESS,
+        L2ResolverAbi,
+        provider,
+      );
+
+      // 3. Call the resolve function
+      const result = await contract.resolve(dnsEncodedName, encodedCallData);
+
+      // 4. Decode the returned data
+      const [resolvedAddress] = iface.decodeFunctionResult('addr', result);
+      return resolvedAddress;
+    } catch (error) {
+      console.error('Error resolving name:', error);
+      return null;
+    }
+  }
 
   // --- Helper Functions ---
   //   detectChain(word: string): Chain | undefined {
@@ -175,10 +308,68 @@ export class ParseCommandService {
 
   // --- Placeholder Action Handlers ---
 
-  async resolveENS(name: string): Promise<Receiver> {
-    // TODO: resolve ENS or username to address
-    console.log(name);
-    return { address: '0xResolvedAddress', type: 'ens', value: name };
+  async resolveENS(name: string, chain: string): Promise<Receiver> {
+    console.log('name  :', name);
+    const ensChain = this.getEnsChainType(name);
+    console.log(ensChain);
+    switch (ensChain) {
+      case 'ethereum':
+        const ethAddress = await this.ethProvider.resolveName(name);
+        console.log('ens name:', ethAddress);
+        return {
+          address: ethAddress,
+          type: 'ens',
+          value: name,
+        };
+
+      case 'base':
+        const baseAddress = await this.resolveNameToAddress(name);
+        console.log('ens name:', baseAddress);
+        return {
+          address: baseAddress,
+          type: 'ens',
+          value: name,
+        };
+
+      case 'twitter':
+        try {
+          const cleanUsername = name.replace(/^@/, '');
+          const user = await this.twitterClientBase.fetchProfile(cleanUsername);
+          console.log('User :', user);
+          if (!user) {
+            throw new Error('user does not exist');
+          }
+          const userExist = await this.getOrCreateUser({
+            id: user.id,
+            username: user.username,
+          });
+          if (!userExist) {
+            throw new Error('error creating User');
+          }
+          return {
+            address:
+              chain == 'solana'
+                ? userExist.svmWalletAddress
+                : userExist.evmWalletAddress,
+            type: 'username',
+            value: name,
+            userId: user.id,
+          };
+        } catch (error) {
+          console.log(error);
+          return;
+        }
+
+      default:
+        return {
+          address:
+            chain == 'solana'
+              ? process.env.ADMIN_WALLET_SVM
+              : process.env.ADMIN_WALLET_EVM,
+          type: 'ens',
+          value: name,
+        };
+    }
   }
 
   async handleNativeSend(
@@ -190,21 +381,21 @@ export class ParseCommandService {
   ) {
     console.log(`Sending ${amount} native on ${chain} to ${to}`);
     try {
-      if (chain == 'solana') {
+      if (chain == 'ethereum') {
         const data: Partial<Transaction> = {
           userId: userKey.userId,
           transactionType: 'send',
-          chain: 'solana',
+          chain: 'ethereum',
           amount: amount,
-          token: { address: 'solana', tokenType: 'native' },
+          token: { address: 'eth', tokenType: 'native' },
           receiver: { value: to, receiverType: 'wallet' },
           meta: {
             platform: 'twitter',
             originalCommand: originalCommand,
           },
         };
-        const response = await this.dexService.sendSol(
-          userKey.svmPK,
+        const response = await this.defiEthereumService.sendEth(
+          userKey.evmPK,
           amount,
           to,
           data,
@@ -230,6 +421,26 @@ export class ParseCommandService {
           data,
         );
         return response;
+      } else if (chain == 'solana') {
+        const data: Partial<Transaction> = {
+          userId: userKey.userId,
+          transactionType: 'send',
+          chain: 'solana',
+          amount: amount,
+          token: { address: 'solana', tokenType: 'native' },
+          receiver: { value: to, receiverType: 'wallet' },
+          meta: {
+            platform: 'twitter',
+            originalCommand: originalCommand,
+          },
+        };
+        const response = await this.dexService.sendSol(
+          userKey.svmPK,
+          amount,
+          to,
+          data,
+        );
+        return response;
       }
     } catch (error) {
       console.log(error);
@@ -247,11 +458,12 @@ export class ParseCommandService {
     console.log(`Sending ${amount} stable ${token} on ${chain} to ${to}`);
 
     try {
-      if (chain == 'solana') {
+      if (chain == 'ethereum') {
+        console.log(to);
         const data: Partial<Transaction> = {
           userId: userKey.userId,
           transactionType: 'send',
-          chain: 'solana',
+          chain: 'ethereum',
           amount: amount,
           token: { address: token, tokenType: 'stable' },
           receiver: { value: to, receiverType: 'wallet' },
@@ -260,8 +472,8 @@ export class ParseCommandService {
             originalCommand: originalCommand,
           },
         };
-        const response = await this.dexService.sendSplToken(
-          userKey.svmPK,
+        const response = await this.defiEthereumService.sendERC20(
+          userKey.evmPK,
           token,
           amount,
           to,
@@ -283,6 +495,27 @@ export class ParseCommandService {
         };
         const response = await this.defiBaseService.sendERC20(
           userKey.evmPK,
+          token,
+          amount,
+          to,
+          data,
+        );
+        return response;
+      } else if (chain == 'solana') {
+        const data: Partial<Transaction> = {
+          userId: userKey.userId,
+          transactionType: 'send',
+          chain: 'solana',
+          amount: amount,
+          token: { address: token, tokenType: 'stable' },
+          receiver: { value: to, receiverType: 'wallet' },
+          meta: {
+            platform: 'twitter',
+            originalCommand: originalCommand,
+          },
+        };
+        const response = await this.dexService.sendSplToken(
+          userKey.svmPK,
           token,
           amount,
           to,
@@ -355,6 +588,7 @@ export class ParseCommandService {
   // --- 🎯 BUNDLED ENTRY FUNCTION ---
   async handleTweetCommand(tweet: string, userId: string) {
     try {
+      this.logger.log(tweet);
       const user = await this.userModel.findOne({ userId });
       if (!user || !user.active) {
         const appUrl = process.env.APP_URL || 'https://x.com/xFi_bot';
@@ -390,7 +624,7 @@ export class ParseCommandService {
       if (receiver) {
         if (receiver.type === 'ens' || receiver.type === 'username') {
           //TODO:
-          to = await this.resolveENS(receiver.value);
+          to = await this.resolveENS(receiver.value, chain);
         } else {
           to = {
             address: receiver.value,
@@ -404,16 +638,33 @@ export class ParseCommandService {
         case 'send':
         case 'tip':
           if (!to) return console.error('Receiver address missing.');
-          if (token.type === 'native')
-            return this.handleNativeSend(
+          if (token.type === 'native') {
+            //TODO: capture usernames here and try to send messages
+            const nativeResponse = await this.handleNativeSend(
               chain,
               to.address,
               amount,
               userKeys,
               tweet,
             );
+
+            const startsWithHttps = /^https/.test(nativeResponse);
+            if (startsWithHttps && to.type == 'username') {
+              try {
+                await this.twitterClientBase.sendDirectMessage(
+                  to.userId,
+                  `🔔 Transaction Notification\n${nativeResponse}`,
+                );
+              } catch (error) {
+                console.error('Failed to send DM:', error.message);
+              }
+              return nativeResponse;
+            }
+            return nativeResponse;
+          }
+
           if (token.type === 'stable') {
-            return this.handleStableSend(
+            const stableResponse = await this.handleStableSend(
               chain,
               token.value,
               to.address,
@@ -421,6 +672,19 @@ export class ParseCommandService {
               userKeys,
               tweet,
             );
+            const startsWithHttps = /^https/.test(stableResponse);
+            if (startsWithHttps && to.type == 'username') {
+              try {
+                await this.twitterClientBase.sendDirectMessage(
+                  to.userId,
+                  `🔔 Transaction Notification\n${stableResponse}`,
+                );
+              } catch (error) {
+                console.error('Failed to send DM:', error.message);
+              }
+              return stableResponse;
+            }
+            return stableResponse;
           }
 
         //   return this.handleTokenSend(
@@ -440,5 +704,39 @@ export class ParseCommandService {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  private async getOrCreateUser(user: { id: string; username: string }) {
+    let existingUser = await this.userModel.findOne({ userId: user.id });
+
+    if (!existingUser) {
+      const newEvmWallet = await this.walletService.createEvmWallet();
+      const newSolanaWallet = await this.walletService.createSVMWallet();
+
+      const [encryptedEvmWalletDetails, encryptedSvmWalletDetails] =
+        await Promise.all([
+          this.walletService.encryptEvmWallet(
+            process.env.DEFAULT_WALLET_PIN!,
+            newEvmWallet.privateKey,
+          ),
+          this.walletService.encryptSVMWallet(
+            process.env.DEFAULT_WALLET_PIN!,
+            newSolanaWallet.privateKey,
+          ),
+        ]);
+
+      existingUser = new this.userModel({
+        userId: user.id,
+        userName: user.username,
+        evmWalletDetails: encryptedEvmWalletDetails.json,
+        evmWalletAddress: newEvmWallet.address,
+        svmWalletDetails: encryptedSvmWalletDetails.json,
+        svmWalletAddress: newSolanaWallet.address,
+        active: false,
+      });
+      return existingUser.save();
+    }
+
+    return existingUser;
   }
 }

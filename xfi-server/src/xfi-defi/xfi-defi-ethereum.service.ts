@@ -6,11 +6,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { console } from 'inspector';
 
-const USDC_ADDRESS_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const USDC_ADDRESS_ETHEREUM = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const USDT_ADDRESS_ETHEREUM = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 
 @Injectable()
-export class XfiDefiBaseService {
-  private readonly logger = new Logger(XfiDefiBaseService.name);
+export class XfiDefiEthereumService {
+  private readonly logger = new Logger(XfiDefiEthereumService.name);
   constructor(
     private readonly httpService: HttpService,
     private readonly walletService: WalletService,
@@ -32,7 +33,7 @@ export class XfiDefiBaseService {
 
       const { balance } = await this.walletService.getNativeEthBalance(
         String(address),
-        process.env.BASE_RPC_URL,
+        process.env.ETHEREUM_RPC,
       );
 
       this.logger.log(balance);
@@ -45,7 +46,7 @@ export class XfiDefiBaseService {
         privateKey,
         reciever,
         parseFloat(amount),
-        process.env.BASE_RPC_URL,
+        process.env.ETHEREUM_RPC,
       );
       const receipt =
         txn?.wait && typeof txn.wait === 'function' ? await txn.wait() : txn;
@@ -59,57 +60,11 @@ export class XfiDefiBaseService {
         } catch (err) {
           console.error('Failed to save transaction:', err.message);
         }
-        return `https://basescan.org/tx/${receipt.transactionHash}`;
+        return `https://etherscan.io/tx/${receipt.transactionHash}`;
       }
       return;
     } catch (error) {
       console.log(error);
-      this.logger.log(error);
-      return `error sending token`;
-    }
-  }
-
-  async sendEthSmartAccount(
-    privateKey: string,
-    amount: string,
-    reciever: string,
-    data: Partial<Transaction>,
-  ) {
-    try {
-      const { address } =
-        await this.walletService.getEvmAddressFromPrivateKey(privateKey);
-
-      const { balance } = await this.walletService.getNativeEthBalance(
-        String(address),
-        process.env.BASE_RPC_URL,
-      );
-
-      if (balance < Number(amount)) {
-        return 'Insufficient balance.';
-      }
-
-      const txn = await this.walletService.transferEth(
-        privateKey,
-        reciever,
-        parseFloat(amount),
-        process.env.SOLANA_RPC,
-      );
-      const receipt =
-        txn?.wait && typeof txn.wait === 'function' ? await txn.wait() : txn;
-
-      if (receipt.status === 1) {
-        try {
-          await new this.transactionModel({
-            ...data,
-            txHash: receipt.transactionHash,
-          }).save();
-        } catch (err) {
-          console.error('Failed to save transaction:', err.message);
-        }
-        return `https://basescan.org/tx/${receipt.transactionHash}`;
-      }
-      return;
-    } catch (error) {
       this.logger.log(error);
       return `error sending token`;
     }
@@ -119,21 +74,30 @@ export class XfiDefiBaseService {
     privateKey: string,
     token: string,
     amount: string,
-    reciever: string,
+    receiver: string,
     data: Partial<Transaction>,
   ) {
     try {
+      this.logger.log(token);
+      const tokenAddresses: Record<string, string> = {
+        usdc: USDC_ADDRESS_ETHEREUM,
+        usdt: USDT_ADDRESS_ETHEREUM,
+      };
+
+      const tokenAddress = tokenAddresses[token.toLowerCase()];
+      if (!tokenAddress) return 'Unsupported token.';
+
       const { address } =
         await this.walletService.getEvmAddressFromPrivateKey(privateKey);
 
-      console.log(address);
+      this.logger.log('Sender Address:', address);
 
       const { balance } = await this.walletService.getERC20Balance(
         String(address),
-        USDC_ADDRESS_BASE,
-        process.env.BASE_RPC_URL,
+        tokenAddress,
+        process.env.ETHEREUM_RPC,
       );
-      console.log(balance);
+      this.logger.log('Balance:', balance);
 
       if (balance < Number(amount)) {
         return 'Insufficient balance.';
@@ -141,13 +105,13 @@ export class XfiDefiBaseService {
 
       const response = await this.walletService.transferERC20(
         privateKey,
-        reciever,
-        USDC_ADDRESS_BASE,
+        receiver,
+        tokenAddress,
         parseFloat(amount),
-        process.env.BASE_RPC_URL,
+        process.env.ETHEREUM_RPC,
       );
 
-      if (response.signature) {
+      if (response?.signature) {
         try {
           await new this.transactionModel({
             ...data,
@@ -156,13 +120,14 @@ export class XfiDefiBaseService {
         } catch (err) {
           console.error('Failed to save transaction:', err.message);
         }
-        return `https://basescan.org/tx/${response.signature}`;
+        return `https://etherscan.io/tx/${response.signature}`;
       }
-      return;
+
+      return 'Transfer failed. No signature received.';
     } catch (error) {
       this.logger.log(error);
-      console.log(error);
-      return `error sending token`;
+      console.error(error);
+      return 'Error sending token.';
     }
   }
 }

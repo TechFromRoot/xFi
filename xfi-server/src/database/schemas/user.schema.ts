@@ -6,7 +6,7 @@ export type UserDocument = mongoose.HydratedDocument<User>;
 
 @Schema()
 export class User {
-  @Prop({ default: uuidv4 })
+  @Prop({ default: uuidv4, unique: true })
   userId: string;
 
   @Prop()
@@ -27,7 +27,7 @@ export class User {
   @Prop()
   svmWalletDetails: string;
 
-  @Prop({ default: false })
+  @Prop({ default: true })
   active: boolean;
 
   @Prop({ default: false })

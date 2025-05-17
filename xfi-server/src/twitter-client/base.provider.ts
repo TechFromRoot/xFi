@@ -393,4 +393,23 @@ export class TwitterClientBase {
     }
     return;
   }
+
+  private createConversationId(userIdA: string, userIdB: string): string {
+    // Sort lexicographically to ensure consistent ordering
+    const [id1, id2] = [userIdA, userIdB].sort();
+    return `${id1}-${id2}`;
+  }
+
+  async sendDirectMessage(userId: string, message: string) {
+    try {
+      const conversationId = this.createConversationId(
+        process.env.TWITTER_ID,
+        userId,
+      );
+      await this.twitterClient.sendDirectMessage(conversationId, message);
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+  }
 }

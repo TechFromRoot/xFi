@@ -2,12 +2,6 @@ POST http://localhost:3827/twitter-client
 Content-Type: application/json
 
 { 
-    "prompt": "@Xfi tip 0.01 eth to 0x111aaa222bbb333ccc444ddd555eee666fff777 on base "
+    "prompt": "@TestBots28  tip 0.01 sol  to @eketeUg"
 }
 
-# GET http://localhost:3000
-# Content-Type: application/json
-
-# # {
-# #     "prompt": "Swap 1 usdc on solana to usdc on base"
-# # }
