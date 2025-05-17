@@ -84,9 +84,9 @@ export class UserService {
       .sort({ createdAt: -1 })
       .exec();
 
-    if (!transactions || transactions.length === 0) {
-      throw new NotFoundException('No transactions found for this user');
-    }
+    // if (!transactions || transactions.length === 0) {
+    //   throw new NotFoundException('No transactions found for this user');
+    // }
 
     return transactions;
   }
