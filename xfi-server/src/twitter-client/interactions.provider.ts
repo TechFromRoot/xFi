@@ -149,7 +149,7 @@ export class TwitterClientInteractions {
     message: IMemory;
     thread: Tweet[];
   }) {
-    if (tweet.userId === twitterConfig.TWITTER_USERNAME) {
+    if (tweet.userId === process.env.TWITTER_ID) {
       this.logger.log('skipping tweet from bot itself', tweet.id);
       // Skip processing if the tweet is from the bot itself
       return;
