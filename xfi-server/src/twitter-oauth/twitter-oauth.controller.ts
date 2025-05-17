@@ -37,7 +37,6 @@ export class TwitterOAuthController {
         }
 
         const twitterUser = req.user as any;
-        console.log(twitterUser);
         // You can update the user DB here if needed
         try {
             await this.twitterService.saveTwitterUser({
