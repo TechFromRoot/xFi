@@ -19,7 +19,8 @@ export class TwitterOAuthController {
     @Get()
     async twitterAuthRedirect(@Res() res: Response) {
         // Initiate Twitter OAuth
-        return res.redirect('/auth/twitter/login');
+        // return res.redirect('auth/twitter/login');
+        return res.redirect('xfi/auth/twitter/login');
     }
 
     @Get('login')
@@ -39,7 +40,10 @@ export class TwitterOAuthController {
         console.log(twitterUser);
         // You can update the user DB here if needed
         try {
-            // await this.twitterService.saveTwitterUser(twitterUser, email);
+            await this.twitterService.saveTwitterUser({
+                userId: twitterUser.id,
+                userName: twitterUser.username
+            });
             return res.redirect(`http://localhost:5173/home?twitterId=${twitterUser.id}`);
         } catch (err) {
             console.error(err);
