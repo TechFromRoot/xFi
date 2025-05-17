@@ -71,6 +71,13 @@ export class UserService {
     return user;
   }
 
+  async checkIfUserExists(userId: string): Promise<User> {
+    return await this.userModel
+      .findOne({ userId })
+      .select('-evmWalletDetails -svmWalletDetails')
+      .exec();
+  }
+
   async getTransactionHistory(userId: string): Promise<Transaction[]> {
     const transactions = await this.transactionModel
       .find({ userId })

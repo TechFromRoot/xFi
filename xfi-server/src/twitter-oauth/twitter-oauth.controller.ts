@@ -19,15 +19,14 @@ export class TwitterOAuthController {
     @Get()
     async twitterAuthRedirect(@Res() res: Response) {
         // Initiate Twitter OAuth
-        // return res.redirect('auth/twitter/login');
-        // return res.redirect('auth/twitter/login');
+        return res.redirect('/auth/twitter/login');
     }
 
-    // @Get('login')
-    // @UseGuards(AuthGuard('twitter'))
-    // twitterLogin() {
-    //     // Redirect handled by Passport
-    // }
+    @Get('login')
+    @UseGuards(AuthGuard('twitter'))
+    twitterLogin() {
+        // Redirect handled by Passport
+    }
 
     @Get('callback')
     @UseGuards(AuthGuard('twitter'))
@@ -41,7 +40,8 @@ export class TwitterOAuthController {
         try {
             await this.twitterService.saveTwitterUser({
                 userId: twitterUser.id,
-                userName: twitterUser.username
+                userName: twitterUser.username,
+                displayName: twitterUser.displayName
             });
             // return res.redirect(`http://localhost:5173/home?twitterId=${twitterUser.id}`);
             return res.redirect(`https://xfi-app.vercel.app/home?twitterId=${twitterUser.id}`);

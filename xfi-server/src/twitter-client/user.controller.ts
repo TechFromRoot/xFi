@@ -32,9 +32,12 @@ export class UserController {
     // }
     const user = await this.userService.getUserById(userId);
     return {
-      ...user,
-      username: "eketeUg",
-      name: "EKETE"
+      userId: userId,
+      evmWalletAddress: user.evmWalletAddress,
+      svmWalletAddress: user.svmWalletAddress,
+      chains: user.chains,
+      username: user.userName,
+      name: user.displayName
     };
   }
 

@@ -13,6 +13,9 @@ export class User {
   userName: string;
 
   @Prop()
+  displayName: string;
+
+  @Prop()
   evmWalletAddress: string;
 
   @Prop()

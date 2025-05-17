@@ -6,15 +6,19 @@ export class TwitterOAuthService {
   constructor(private readonly userService: UserService) {}
 
   public async saveTwitterUser(createUserDto: {
-    userId;
+    userId: string;
     userName: string;
+    displayName: string;
     chains?: string[];
   }) {
     //check if user exists
-    const user = await this.userService.getUserById(createUserDto.userId);
+    const user = await this.userService.checkIfUserExists(createUserDto.userId);
     if (!user) {
       //create user
       await this.userService.createUser(createUserDto);
+    } else {
+      //update user
+      await this.userService.updateUser(createUserDto.userId, createUserDto);
     }
   }
 }
